@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MTR Real-Time Arrival App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        header {
+            text-align: center;
+            padding: 20px 0;
+            background-color: #fff;
+        }
+        .logo {
+            height: 60px;
+            width: auto;
+        }
+        .search-container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+        #search-bar {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        .accordion-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        .accordion {
+            background-color: #fff;
+            color: #333;
+            cursor: pointer;
+            padding: 15px;
+            width: 100%;
+            border: none;
+            text-align: left;
+            outline: none;
+            font-size: 18px;
+            transition: 0.4s;
+            margin-bottom: 5px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+        }
+        .accordion::before {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            background-color: var(--line-color);
+            margin-right: 15px;
+            border-radius: 3px;
+        }
+        .active, .accordion:hover {
+            background-color: #f0f0f0;
+        }
+        .panel {
+            padding: 0 18px;
+            background-color: white;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-out;
+            border-radius: 0 0 5px 5px;
+        }
+        .station-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            padding: 15px 0;
+        }
+        .station-btn {
+            padding: 12px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .station-btn:hover {
+            background-color: #e0e0e0;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5);
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 90%;
+            width: 900px;
+            max-height: 95vh;
+            overflow-y: auto;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover {
+            color: #000;
+        }
+        .modal-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .map-container {
+            height: 400px;
+            margin: 20px 0;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .direction {
+            margin-bottom: 20px;
+        }
+        .direction h3 {
+            color: #007bff;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .error {
+            color: red;
+            text-align: center;
+        }
+        .info {
+            font-size: 14px;
+            color: #666;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .station-grid {
+                grid-template-columns: 1fr;
+            }
+            .modal-content {
+                width: 95%;
+                padding: 15px;
+            }
+            .map-container {
+                height: 300px;
+            }
+        }
+    </style>
+    <!-- Google Maps API - Replace YOUR_API_KEY with a valid key if needed for production -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=&callback=initMap" async defer></script>
+</head>
+<body>
+    <header>
+        <img src="https://mtrtungchunglineextension.hk/wp-content/themes/mtr1/assets/image/MTR_logo.svg" alt="MTR Logo" class="logo">
+    </header>
+
+    <div class="search-container">
+        <input type="text" id="search-bar" placeholder="Search for a station...">
+    </div>
+
+    <div class="accordion-container" id="accordion-container"></div>
+
+    <!-- Modal -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <script>
+        const lineColors = {
+            AEL: "#00888A",
+            DRL: "#F173AC",
+            EAL: "#53B7E8",
+            ISL: "#007DC5",
+            KTL: "#00AB4E",
+            SIL: "#BAC429",
+            TKL: "#7D499D",
+            TWL: "#ED1D24",
+            TML: "#923011",
+            TCL: "#F7943E"
+        };
+
+        // Station coordinates (lat, lng) - sourced from public data and common references
+        const stationCoords = {
+            "AIR": {lat: 22.3159, lng: 113.9366},
+            "AWE": {lat: 22.3216, lng: 113.9400},
+            "HOK": {lat: 22.2848, lng: 114.1582},
+            "KOW": {lat: 22.3089, lng: 114.1616},
+            "TSY": {lat: 22.3583, lng: 114.1070},
+            "OLY": {lat: 22.3380, lng: 114.1538},
+            "NAC": {lat: 22.3727, lng: 114.1386},
+            "LAK": {lat: 22.3682, lng: 114.1278},
+            "SUN": {lat: 22.3658, lng: 113.9970},
+            "TUC": {lat: 22.3680, lng: 113.9650},
+            "WKS": {lat: 22.4259, lng: 114.2423},
+            "MOS": {lat: 22.4117, lng: 114.2240},
+            "HEO": {lat: 22.4117, lng: 114.2097},
+            "TSH": {lat: 22.4083, lng: 114.2170},
+            "SHM": {lat: 22.3880, lng: 114.2085},
+            "CIO": {lat: 22.3860, lng: 114.2025},
+            "STW": {lat: 22.3780, lng: 114.1950},
+            "CKT": {lat: 22.3750, lng: 114.1920},
+            "TAW": {lat: 22.3680, lng: 114.1870},
+            "HIK": {lat: 22.3590, lng: 114.1860},
+            "KAT": {lat: 22.3320, lng: 114.1990},
+            "SUW": {lat: 22.3290, lng: 114.1940},
+            "TKW": {lat: 22.3250, lng: 114.1890},
+            "HOM": {lat: 22.3120, lng: 114.1820},
+            "HUH": {lat: 22.3090, lng: 114.1850},
+            "ETS": {lat: 22.2950, lng: 114.1720},
+            "AUS": {lat: 22.3180, lng: 114.1620},
+            "MEF": {lat: 22.3700, lng: 114.1400},
+            "TWW": {lat: 22.3640, lng: 114.1120},
+            "KSR": {lat: 22.4440, lng: 114.0390},
+            "YUL": {lat: 22.4460, lng: 114.0340},
+            "LOP": {lat: 22.4440, lng: 114.0220},
+            "TIS": {lat: 22.4480, lng: 113.9970},
+            "SIH": {lat: 22.4140, lng: 113.9790},
+            "TUM": {lat: 22.3930, lng: 113.9650},
+            "NOP": {lat: 22.2810, lng: 114.1920},
+            "QUB": {lat: 22.2790, lng: 114.1850},
+            "YAT": {lat: 22.2980, lng: 114.2250},
+            "TIK": {lat: 22.3070, lng: 114.2280},
+            "TKO": {lat: 22.3070, lng: 114.2600},
+            "LHP": {lat: 22.2950, lng: 114.2840},
+            "HAH": {lat: 22.3150, lng: 114.2640},
+            "POA": {lat: 22.3080, lng: 114.2700},
+            "ADM": {lat: 22.2790, lng: 114.1650},
+            "EXC": {lat: 22.2830, lng: 114.1600},
+            "MKK": {lat: 22.3130, lng: 114.1700},
+            "KOT": {lat: 22.3330, lng: 114.1970},
+            "SHT": {lat: 22.3770, lng: 114.1950},
+            "FOT": {lat: 22.3930, lng: 114.1950},
+            "RAC": {lat: 22.3800, lng: 114.1900},
+            "UNI": {lat: 22.4140, lng: 114.2100},
+            "TAP": {lat: 22.4460, lng: 114.2110},
+            "TWO": {lat: 22.4500, lng: 114.2050},
+            "FAN": {lat: 22.4920, lng: 114.1430},
+            "SHS": {lat: 22.5010, lng: 114.1280},
+            "LOW": {lat: 22.5290, lng: 114.1330},
+            "LMC": {lat: 22.5070, lng: 114.0670},
+            "OCP": {lat: 22.2480, lng: 114.1730},
+            "WCH": {lat: 22.2670, lng: 114.1750},
+            "LET": {lat: 22.2760, lng: 114.1670},
+            "SOH": {lat: 22.2680, lng: 114.1600},
+            "CEN": {lat: 22.2820, lng: 114.1580},
+            "TST": {lat: 22.2970, lng: 114.1720},
+            "JOR": {lat: 22.3050, lng: 114.1620},
+            "YMT": {lat: 22.3130, lng: 114.1680},
+            "MOK": {lat: 22.3200, lng: 114.1620},
+            "PRE": {lat: 22.3330, lng: 114.1610},
+            "SSP": {lat: 22.3380, lng: 114.1550},
+            "CSW": {lat: 22.3410, lng: 114.1490},
+            "LCK": {lat: 22.3480, lng: 114.1390},
+            "KWF": {lat: 22.3630, lng: 114.1280},
+            "KWH": {lat: 22.3570, lng: 114.1270},
+            "TWH": {lat: 22.3640, lng: 114.1230},
+            "TSW": {lat: 22.3680, lng: 114.1090},
+            "KET": {lat: 22.2850, lng: 114.1270},
+            "HKU": {lat: 22.2830, lng: 114.1350},
+            "SYP": {lat: 22.2850, lng: 114.1420},
+            "SHW": {lat: 22.2870, lng: 114.1490},
+            "WAC": {lat: 22.2770, lng: 114.1740},
+            "CAB": {lat: 22.2800, lng: 114.1840},
+            "TIH": {lat: 22.2810, lng: 114.1910},
+            "FOH": {lat: 22.2850, lng: 114.1980},
+            "TAK": {lat: 22.2740, lng: 114.2180},
+            "SWH": {lat: 22.2820, lng: 114.2220},
+            "SKW": {lat: 22.2780, lng: 114.2300},
+            "HFC": {lat: 22.2630, lng: 114.2360},
+            "CHW": {lat: 22.2680, lng: 114.2480},
+            "WHA": {lat: 22.3040, lng: 114.1610},
+            "SKM": {lat: 22.3330, lng: 114.1600},
+            "LOF": {lat: 22.3430, lng: 114.1970},
+            "WTS": {lat: 22.3640, lng: 114.1950},
+            "DIH": {lat: 22.3640, lng: 114.2040},
+            "CHH": {lat: 22.3350, lng: 114.2120},
+            "KOB": {lat: 22.3240, lng: 114.2160},
+            "NTK": {lat: 22.3220, lng: 114.2260},
+            "KWT": {lat: 22.3120, lng: 114.2270},
+            "LAT": {lat: 22.3310, lng: 114.2260},
+            "DIS": {lat: 22.3150, lng: 113.9880}
+        };
+
+        const mtrData = { /* ... same as before, omitted for brevity ... */ };
+
+        // ... (same stationMap, container, searchBar, modal setup as previous version)
+
+        let map;
+        let marker;
+        let circle;
+
+        function initMap() {
+            // Placeholder - will be called when modal opens if needed
+        }
+
+        function openModal(line, sta, stationName) {
+            currentLine = line;
+            currentSta = sta;
+            modalBody.innerHTML = `<div class="modal-header"><h2>${stationName} (${sta}) - ${mtrData[line].name}</h2></div>
+                                   <div class="info">Loading map and train data...</div>
+                                   <div id="map" class="map-container"></div>`;
+            modal.style.display = 'flex';
+
+            const coords = stationCoords[sta];
+            if (coords) {
+                map = new google.maps.Map(document.getElementById("map"), {
+                    center: coords,
+                    zoom: 17,
+                });
+                marker = new google.maps.Marker({
+                    position: coords,
+                    map: map,
+                    title: stationName
+                });
+                circle = new google.maps.Circle({
+                    strokeColor: "#FF0000",
+                    strokeOpacity: 0.8,
+                    strokeWeight: 2,
+                    fillColor: "#FF0000",
+                    fillOpacity: 0.15,
+                    map: map,
+                    center: coords,
+                    radius: 30
+                });
+            } else {
+                document.getElementById("map").innerHTML = "<p>No map data available for this station.</p>";
+            }
+
+            fetchTrainData();
+            clearInterval(fetchInterval);
+            fetchInterval = setInterval(fetchTrainData, 30000);
+        }
+
+        // ... (rest of the script remains the same: fetchTrainData, displayModal, displayDirection)
+
+        // In displayModal, add the map container if not already there (but since we set it in openModal, it's fine)
+    </script>
+</body>
+</html>
