@@ -113,8 +113,8 @@
             padding: 20px;
             border-radius: 10px;
             max-width: 90%;
-            width: 900px;
-            max-height: 95vh;
+            width: 800px;
+            max-height: 90vh;
             overflow-y: auto;
             box-shadow: 0 5px 15px rgba(0,0,0,0.3);
         }
@@ -131,13 +131,6 @@
         .modal-header {
             text-align: center;
             margin-bottom: 20px;
-        }
-        .map-container {
-            height: 400px;
-            margin: 20px 0;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            overflow: hidden;
         }
         .direction {
             margin-bottom: 20px;
@@ -178,13 +171,8 @@
                 width: 95%;
                 padding: 15px;
             }
-            .map-container {
-                height: 300px;
-            }
         }
     </style>
-    <!-- Google Maps API - Replace YOUR_API_KEY with a valid key if needed for production -->
-    <script src="https://maps.googleapis.com/maps/api/js?key=&callback=initMap" async defer></script>
 </head>
 <body>
     <header>
@@ -207,173 +195,355 @@
 
     <script>
         const lineColors = {
-            AEL: "#00888A",
-            DRL: "#F173AC",
-            EAL: "#53B7E8",
-            ISL: "#007DC5",
-            KTL: "#00AB4E",
-            SIL: "#BAC429",
-            TKL: "#7D499D",
-            TWL: "#ED1D24",
-            TML: "#923011",
-            TCL: "#F7943E"
+            AEL: "#00888A", // Airport Express
+            DRL: "#F173AC", // Disneyland Resort Line
+            EAL: "#53B7E8", // East Rail Line
+            ISL: "#007DC5", // Island Line
+            KTL: "#00AB4E", // Kwun Tong Line
+            SIL: "#BAC429", // South Island Line
+            TKL: "#7D499D", // Tseung Kwan O Line
+            TWL: "#ED1D24", // Tsuen Wan Line
+            TML: "#923011", // Tuen Ma Line
+            TCL: "#F7943E"  // Tung Chung Line
         };
 
-        // Station coordinates (lat, lng) - sourced from public data and common references
-        const stationCoords = {
-            "AIR": {lat: 22.3159, lng: 113.9366},
-            "AWE": {lat: 22.3216, lng: 113.9400},
-            "HOK": {lat: 22.2848, lng: 114.1582},
-            "KOW": {lat: 22.3089, lng: 114.1616},
-            "TSY": {lat: 22.3583, lng: 114.1070},
-            "OLY": {lat: 22.3380, lng: 114.1538},
-            "NAC": {lat: 22.3727, lng: 114.1386},
-            "LAK": {lat: 22.3682, lng: 114.1278},
-            "SUN": {lat: 22.3658, lng: 113.9970},
-            "TUC": {lat: 22.3680, lng: 113.9650},
-            "WKS": {lat: 22.4259, lng: 114.2423},
-            "MOS": {lat: 22.4117, lng: 114.2240},
-            "HEO": {lat: 22.4117, lng: 114.2097},
-            "TSH": {lat: 22.4083, lng: 114.2170},
-            "SHM": {lat: 22.3880, lng: 114.2085},
-            "CIO": {lat: 22.3860, lng: 114.2025},
-            "STW": {lat: 22.3780, lng: 114.1950},
-            "CKT": {lat: 22.3750, lng: 114.1920},
-            "TAW": {lat: 22.3680, lng: 114.1870},
-            "HIK": {lat: 22.3590, lng: 114.1860},
-            "KAT": {lat: 22.3320, lng: 114.1990},
-            "SUW": {lat: 22.3290, lng: 114.1940},
-            "TKW": {lat: 22.3250, lng: 114.1890},
-            "HOM": {lat: 22.3120, lng: 114.1820},
-            "HUH": {lat: 22.3090, lng: 114.1850},
-            "ETS": {lat: 22.2950, lng: 114.1720},
-            "AUS": {lat: 22.3180, lng: 114.1620},
-            "MEF": {lat: 22.3700, lng: 114.1400},
-            "TWW": {lat: 22.3640, lng: 114.1120},
-            "KSR": {lat: 22.4440, lng: 114.0390},
-            "YUL": {lat: 22.4460, lng: 114.0340},
-            "LOP": {lat: 22.4440, lng: 114.0220},
-            "TIS": {lat: 22.4480, lng: 113.9970},
-            "SIH": {lat: 22.4140, lng: 113.9790},
-            "TUM": {lat: 22.3930, lng: 113.9650},
-            "NOP": {lat: 22.2810, lng: 114.1920},
-            "QUB": {lat: 22.2790, lng: 114.1850},
-            "YAT": {lat: 22.2980, lng: 114.2250},
-            "TIK": {lat: 22.3070, lng: 114.2280},
-            "TKO": {lat: 22.3070, lng: 114.2600},
-            "LHP": {lat: 22.2950, lng: 114.2840},
-            "HAH": {lat: 22.3150, lng: 114.2640},
-            "POA": {lat: 22.3080, lng: 114.2700},
-            "ADM": {lat: 22.2790, lng: 114.1650},
-            "EXC": {lat: 22.2830, lng: 114.1600},
-            "MKK": {lat: 22.3130, lng: 114.1700},
-            "KOT": {lat: 22.3330, lng: 114.1970},
-            "SHT": {lat: 22.3770, lng: 114.1950},
-            "FOT": {lat: 22.3930, lng: 114.1950},
-            "RAC": {lat: 22.3800, lng: 114.1900},
-            "UNI": {lat: 22.4140, lng: 114.2100},
-            "TAP": {lat: 22.4460, lng: 114.2110},
-            "TWO": {lat: 22.4500, lng: 114.2050},
-            "FAN": {lat: 22.4920, lng: 114.1430},
-            "SHS": {lat: 22.5010, lng: 114.1280},
-            "LOW": {lat: 22.5290, lng: 114.1330},
-            "LMC": {lat: 22.5070, lng: 114.0670},
-            "OCP": {lat: 22.2480, lng: 114.1730},
-            "WCH": {lat: 22.2670, lng: 114.1750},
-            "LET": {lat: 22.2760, lng: 114.1670},
-            "SOH": {lat: 22.2680, lng: 114.1600},
-            "CEN": {lat: 22.2820, lng: 114.1580},
-            "TST": {lat: 22.2970, lng: 114.1720},
-            "JOR": {lat: 22.3050, lng: 114.1620},
-            "YMT": {lat: 22.3130, lng: 114.1680},
-            "MOK": {lat: 22.3200, lng: 114.1620},
-            "PRE": {lat: 22.3330, lng: 114.1610},
-            "SSP": {lat: 22.3380, lng: 114.1550},
-            "CSW": {lat: 22.3410, lng: 114.1490},
-            "LCK": {lat: 22.3480, lng: 114.1390},
-            "KWF": {lat: 22.3630, lng: 114.1280},
-            "KWH": {lat: 22.3570, lng: 114.1270},
-            "TWH": {lat: 22.3640, lng: 114.1230},
-            "TSW": {lat: 22.3680, lng: 114.1090},
-            "KET": {lat: 22.2850, lng: 114.1270},
-            "HKU": {lat: 22.2830, lng: 114.1350},
-            "SYP": {lat: 22.2850, lng: 114.1420},
-            "SHW": {lat: 22.2870, lng: 114.1490},
-            "WAC": {lat: 22.2770, lng: 114.1740},
-            "CAB": {lat: 22.2800, lng: 114.1840},
-            "TIH": {lat: 22.2810, lng: 114.1910},
-            "FOH": {lat: 22.2850, lng: 114.1980},
-            "TAK": {lat: 22.2740, lng: 114.2180},
-            "SWH": {lat: 22.2820, lng: 114.2220},
-            "SKW": {lat: 22.2780, lng: 114.2300},
-            "HFC": {lat: 22.2630, lng: 114.2360},
-            "CHW": {lat: 22.2680, lng: 114.2480},
-            "WHA": {lat: 22.3040, lng: 114.1610},
-            "SKM": {lat: 22.3330, lng: 114.1600},
-            "LOF": {lat: 22.3430, lng: 114.1970},
-            "WTS": {lat: 22.3640, lng: 114.1950},
-            "DIH": {lat: 22.3640, lng: 114.2040},
-            "CHH": {lat: 22.3350, lng: 114.2120},
-            "KOB": {lat: 22.3240, lng: 114.2160},
-            "NTK": {lat: 22.3220, lng: 114.2260},
-            "KWT": {lat: 22.3120, lng: 114.2270},
-            "LAT": {lat: 22.3310, lng: 114.2260},
-            "DIS": {lat: 22.3150, lng: 113.9880}
+        const mtrData = {
+            "AEL": { name: "Airport Express", stations: {
+                "AIR": "Airport",
+                "AWE": "AsiaWorld Expo",
+                "HOK": "Hong Kong",
+                "KOW": "Kowloon",
+                "TSY": "Tsing Yi"
+            }},
+            "TCL": { name: "Tung Chung Line", stations: {
+                "HOK": "Hong Kong",
+                "KOW": "Kowloon",
+                "OLY": "Olympic",
+                "NAC": "Nam Cheong",
+                "LAK": "Lai King",
+                "TSY": "Tsing Yi",
+                "SUN": "Sunny Bay",
+                "TUC": "Tung Chung"
+            }},
+            "TML": { name: "Tuen Ma Line", stations: {
+                "WKS": "Wu Kai Sha",
+                "MOS": "Ma On Shan",
+                "HEO": "Heng On",
+                "TSH": "Tai Shui Hang",
+                "SHM": "Shek Mun",
+                "CIO": "City One",
+                "STW": "Sha Tin Wai",
+                "CKT": "Che Kung Temple",
+                "TAW": "Tai Wai",
+                "HIK": "Hin Keng",
+                "KAT": "Kai Tak",
+                "SUW": "Sung Wong Toi",
+                "TKW": "To Kwa Wan",
+                "HOM": "Ho Man Tin",
+                "HUH": "Hung Hom",
+                "ETS": "East Tsim Sha Tsui",
+                "AUS": "Austin",
+                "NAC": "Nam Cheong",
+                "MEF": "Mei Foo",
+                "TWW": "Tsuen Wan West",
+                "KSR": "Kam Sheung Road",
+                "YUL": "Yuen Long",
+                "LOP": "Long Ping",
+                "TIS": "Tin Shui Wai",
+                "SIH": "Siu Hong",
+                "TUM": "Tuen Mun"
+            }},
+            "TKL": { name: "Tseung Kwan O Line", stations: {
+                "NOP": "North Point",
+                "QUB": "Quarry Bay",
+                "YAT": "Yau Tong",
+                "TIK": "Tiu Keng Leng",
+                "TKO": "Tseung Kwan O",
+                "LHP": "LOHAS Park",
+                "HAH": "Hang Hau",
+                "POA": "Po Lam"
+            }},
+            "EAL": { name: "East Rail Line", stations: {
+                "ADM": "Admiralty",
+                "EXC": "Exhibition Centre",
+                "HUH": "Hung Hom",
+                "MKK": "Mong Kok East",
+                "KOT": "Kowloon Tong",
+                "TAW": "Tai Wai",
+                "SHT": "Sha Tin",
+                "FOT": "Fo Tan",
+                "RAC": "Racecourse",
+                "UNI": "University",
+                "TAP": "Tai Po Market",
+                "TWO": "Tai Wo",
+                "FAN": "Fanling",
+                "SHS": "Sheung Shui",
+                "LOW": "Lo Wu",
+                "LMC": "Lok Ma Chau"
+            }},
+            "SIL": { name: "South Island Line", stations: {
+                "ADM": "Admiralty",
+                "OCP": "Ocean Park",
+                "WCH": "Wong Chuk Hang",
+                "LET": "Lei Tung",
+                "SOH": "South Horizons"
+            }},
+            "TWL": { name: "Tsuen Wan Line", stations: {
+                "CEN": "Central",
+                "ADM": "Admiralty",
+                "TST": "Tsim Sha Tsui",
+                "JOR": "Jordan",
+                "YMT": "Yau Ma Tei",
+                "MOK": "Mong Kok",
+                "PRE": "Prince Edward",
+                "SSP": "Sham Shui Po",
+                "CSW": "Cheung Sha Wan",
+                "LCK": "Lai Chi Kok",
+                "MEF": "Mei Foo",
+                "LAK": "Lai King",
+                "KWF": "Kwai Fong",
+                "KWH": "Kwai Hing",
+                "TWH": "Tai Wo Hau",
+                "TSW": "Tsuen Wan"
+            }},
+            "ISL": { name: "Island Line", stations: {
+                "KET": "Kennedy Town",
+                "HKU": "HKU",
+                "SYP": "Sai Ying Pun",
+                "SHW": "Sheung Wan",
+                "CEN": "Central",
+                "ADM": "Admiralty",
+                "WAC": "Wan Chai",
+                "CAB": "Causeway Bay",
+                "TIH": "Tin Hau",
+                "FOH": "Fortress Hill",
+                "NOP": "North Point",
+                "QUB": "Quarry Bay",
+                "TAK": "Tai Koo",
+                "SWH": "Sai Wan Ho",
+                "SKW": "Shau Kei Wan",
+                "HFC": "Heng Fa Chuen",
+                "CHW": "Chai Wan"
+            }},
+            "KTL": { name: "Kwun Tong Line", stations: {
+                "WHA": "Whampoa",
+                "HOM": "Ho Man Tin",
+                "YMT": "Yau Ma Tei",
+                "MOK": "Mong Kok",
+                "PRE": "Prince Edward",
+                "SKM": "Shek Kip Mei",
+                "KOT": "Kowloon Tong",
+                "LOF": "Lok Fu",
+                "WTS": "Wong Tai Sin",
+                "DIH": "Diamond Hill",
+                "CHH": "Choi Hung",
+                "KOB": "Kowloon Bay",
+                "NTK": "Ngau Tau Kok",
+                "KWT": "Kwun Tong",
+                "LAT": "Lam Tin",
+                "YAT": "Yau Tong",
+                "TIK": "Tiu Keng Leng"
+            }},
+            "DRL": { name: "Disneyland Resort Line", stations: {
+                "SUN": "Sunny Bay",
+                "DIS": "Disneyland Resort"
+            }}
         };
 
-        const mtrData = { /* ... same as before, omitted for brevity ... */ };
+        const stationMap = {};
+        Object.entries(mtrData).forEach(([line, info]) => {
+            Object.entries(info.stations).forEach(([code, name]) => {
+                stationMap[code] = { name, line };
+            });
+        });
 
-        // ... (same stationMap, container, searchBar, modal setup as previous version)
+        const container = document.getElementById('accordion-container');
+        const searchBar = document.getElementById('search-bar');
+        const modal = document.getElementById('modal');
+        const modalBody = document.getElementById('modal-body');
+        const closeBtn = document.querySelector('.close');
 
-        let map;
-        let marker;
-        let circle;
+        let currentLine = '';
+        let currentSta = '';
+        let fetchInterval;
 
-        function initMap() {
-            // Placeholder - will be called when modal opens if needed
-        }
+        // Build accordion
+        const lines = Object.keys(mtrData);
+        lines.forEach((lineCode, index) => {
+            const lineInfo = mtrData[lineCode];
+            const color = lineColors[lineCode];
+
+            const acc = document.createElement('button');
+            acc.className = 'accordion';
+            acc.textContent = lineInfo.name;
+            acc.style.setProperty('--line-color', color);
+
+            const panel = document.createElement('div');
+            panel.className = 'panel';
+
+            const grid = document.createElement('div');
+            grid.className = 'station-grid';
+
+            Object.entries(lineInfo.stations).sort((a, b) => a[1].localeCompare(b[1])).forEach(([code, name]) => {
+                const btn = document.createElement('div');
+                btn.className = 'station-btn';
+                btn.textContent = `${name} (${code})`;
+                btn.dataset.line = lineCode;
+                btn.dataset.sta = code;
+                btn.onclick = () => openModal(lineCode, code, name);
+                grid.appendChild(btn);
+            });
+
+            panel.appendChild(grid);
+            container.appendChild(acc);
+            container.appendChild(panel);
+
+            acc.onclick = function() {
+                this.classList.toggle('active');
+                const p = this.nextElementSibling;
+                if (p.style.maxHeight) {
+                    p.style.maxHeight = null;
+                } else {
+                    p.style.maxHeight = p.scrollHeight + "px";
+                }
+            };
+
+            // Open first accordion by default
+            if (index === 0) {
+                acc.classList.add('active');
+                panel.style.maxHeight = panel.scrollHeight + "px";
+            }
+        });
+
+        // Search functionality
+        searchBar.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase().trim();
+            const buttons = container.querySelectorAll('.accordion');
+            const panels = container.querySelectorAll('.panel');
+
+            buttons.forEach((acc, i) => {
+                const panel = panels[i];
+                const stations = panel.querySelectorAll('.station-btn');
+                let hasMatch = false;
+
+                stations.forEach(st => {
+                    const text = st.textContent.toLowerCase();
+                    if (text.includes(query)) {
+                        st.style.display = 'block';
+                        hasMatch = true;
+                    } else {
+                        st.style.display = 'none';
+                    }
+                });
+
+                if (query === '') {
+                    acc.style.display = 'block';
+                    panel.style.display = 'block';
+                } else if (hasMatch) {
+                    acc.style.display = 'block';
+                    panel.style.display = 'block';
+                    acc.classList.add('active');
+                    panel.style.maxHeight = panel.scrollHeight + "px";
+                } else {
+                    acc.style.display = 'none';
+                    panel.style.display = 'none';
+                    acc.classList.remove('active');
+                    panel.style.maxHeight = null;
+                }
+            });
+        });
+
+        // Modal controls
+        closeBtn.onclick = () => {
+            modal.style.display = 'none';
+            clearInterval(fetchInterval);
+        };
+        window.onclick = (e) => {
+            if (e.target === modal) {
+                modal.style.display = 'none';
+                clearInterval(fetchInterval);
+            }
+        };
 
         function openModal(line, sta, stationName) {
             currentLine = line;
             currentSta = sta;
-            modalBody.innerHTML = `<div class="modal-header"><h2>${stationName} (${sta}) - ${mtrData[line].name}</h2></div>
-                                   <div class="info">Loading map and train data...</div>
-                                   <div id="map" class="map-container"></div>`;
+            modalBody.innerHTML = `<div class="modal-header"><h2>${stationName} (${sta}) - ${mtrData[line].name}</h2></div><div class="info">Loading...</div>`;
             modal.style.display = 'flex';
-
-            const coords = stationCoords[sta];
-            if (coords) {
-                map = new google.maps.Map(document.getElementById("map"), {
-                    center: coords,
-                    zoom: 17,
-                });
-                marker = new google.maps.Marker({
-                    position: coords,
-                    map: map,
-                    title: stationName
-                });
-                circle = new google.maps.Circle({
-                    strokeColor: "#FF0000",
-                    strokeOpacity: 0.8,
-                    strokeWeight: 2,
-                    fillColor: "#FF0000",
-                    fillOpacity: 0.15,
-                    map: map,
-                    center: coords,
-                    radius: 30
-                });
-            } else {
-                document.getElementById("map").innerHTML = "<p>No map data available for this station.</p>";
-            }
-
             fetchTrainData();
             clearInterval(fetchInterval);
             fetchInterval = setInterval(fetchTrainData, 30000);
         }
 
-        // ... (rest of the script remains the same: fetchTrainData, displayModal, displayDirection)
+        function fetchTrainData() {
+            if (!currentLine || !currentSta) return;
+            fetch(`https://rt.data.gov.hk/v1/transport/mtr/getSchedule.php?line=${currentLine}&sta=${currentSta}`)
+                .then(res => res.json())
+                .then(data => displayModal(data))
+                .catch(err => {
+                    modalBody.innerHTML += `<p class="error">Error: ${err.message}</p>`;
+                });
+        }
 
-        // In displayModal, add the map container if not already there (but since we set it in openModal, it's fine)
+        function displayModal(data) {
+            if (data.status === 0) {
+                modalBody.innerHTML = `<p class="error">${data.message}</p>`;
+                if (data.url) modalBody.innerHTML += `<p><a href="${data.url}" target="_blank">More information</a></p>`;
+                return;
+            }
+
+            const key = `${currentLine}-${currentSta}`;
+            const stationData = data.data[key];
+            if (!stationData) {
+                modalBody.innerHTML = '<p class="error">No data available.</p>';
+                return;
+            }
+
+            const isDelay = data.isdelay === 'Y' ? '<p class="error">Delays reported!</p>' : '';
+
+            let content = `<div class="modal-header"><h2>${stationMap[currentSta].name} (${currentSta})</h2></div>`;
+            content += `<p class="info">Update: ${stationData.curr_time} | System: ${stationData.sys_time}</p>${isDelay}`;
+
+            content += displayDirection('UP', stationData.UP || []);
+            content += displayDirection('DOWN', stationData.DOWN || []);
+
+            modalBody.innerHTML = content;
+        }
+
+        function displayDirection(dir, trains) {
+            let html = `<div class="direction"><h3>${dir} Direction</h3>`;
+            if (trains.length === 0) {
+                html += '<p>No upcoming trains.</p></div>';
+                return html;
+            }
+
+            const table = `<table>
+                <thead><tr>
+                    <th>Seq</th><th>Destination</th><th>Platform</th>
+                    ${currentLine === 'EAL' ? '<th>Type</th>' : ''}
+                    <th>Time</th><th>Min</th><th>Valid</th>
+                </tr></thead><tbody>`;
+
+            let rows = '';
+            trains.forEach(train => {
+                const destName = stationMap[train.dest]?.name || train.dest;
+                const via = train.route === 'RAC' ? ' (via Racecourse)' : '';
+                const valid = train.valid === 'Y' ? 'Yes' : 'No';
+                const timetype = currentLine === 'EAL' ? (train.timetype === 'A' ? 'Arrival' : 'Departure') : '';
+                rows += `<tr>
+                    <td>${train.seq}</td>
+                    <td>${destName}${via}</td>
+                    <td>${train.plat}</td>
+                    ${currentLine === 'EAL' ? `<td>${timetype}</td>` : ''}
+                    <td>${train.time.split(' ')[1]}</td>
+                    <td>${train.ttnt}</td>
+                    <td>${valid}</td>
+                </tr>`;
+            });
+
+            html += table + rows + `</tbody></table></div>`;
+            return html;
+        }
     </script>
 </body>
 </html>
